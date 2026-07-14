@@ -1,0 +1,8 @@
+[serve]
+port = 3000
+
+[test]
+root = "./tests"
+
+[install]
+exact = true
