@@ -146,7 +146,7 @@ export default function FeesPage() {
       toast.success("Payment link generated and sent to student!");
       mutate();
     } catch (err: any) {
-      toast.error(err.response?.data?.message || "Failed to generate payment link");
+      toast.error(err.response?.data?.body?.message || err.response?.data?.message || err.message || "Failed to generate payment link");
     }
   };
 

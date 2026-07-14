@@ -52,7 +52,7 @@ export function RecordPaymentModal({ fee, onRecorded }: { fee: any, onRecorded: 
       onRecorded();
       setOpen(false);
     } catch (err: any) {
-      toast.error(err.response?.data?.message || "Failed to record payment");
+      toast.error(err.response?.data?.body?.message || err.response?.data?.message || err.message || "Failed to record payment");
     } finally {
       setLoading(false);
     }

@@ -75,7 +75,7 @@ export function GenerateFeesModal({ onGenerated }: { onGenerated: () => void }) 
       setBatchId("");
       setStudentId("");
     } catch (err: any) {
-      toast.error(err.response?.data?.message || "Failed to generate fees");
+      toast.error(err.response?.data?.body?.message || err.response?.data?.message || err.message || "Failed to generate fees");
     } finally {
       setLoading(false);
     }
