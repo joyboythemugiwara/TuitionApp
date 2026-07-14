@@ -17,7 +17,12 @@ export class WhatsappService {
     }
 
     // WhatsApp expects the phone number without the '+' sign
-    const cleanPhone = to.replace(/[^0-9]/g, "");
+    let cleanPhone = to.replace(/[^0-9]/g, "");
+
+    // If it's a standard 10-digit Indian number, automatically add the '91' country code
+    if (cleanPhone.length === 10) {
+      cleanPhone = `91${cleanPhone}`;
+    }
 
     try {
       const response = await fetch(
