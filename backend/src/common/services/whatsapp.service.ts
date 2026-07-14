@@ -8,8 +8,10 @@ export class WhatsappService {
    * Sends a plain text message via WhatsApp Cloud API.
    * Note: If you want to send template messages, you will need to adjust the payload structure.
    */
-  async sendMessage(to: string, message: string): Promise<boolean> {
-    if (!env.META_WABA_TOKEN || !env.META_PHONE_NUMBER_ID) {
+  async sendMessage(to: string, message: string, tenantPhoneNumberId?: string | null): Promise<boolean> {
+    const phoneNumberId = tenantPhoneNumberId || env.META_PHONE_NUMBER_ID;
+
+    if (!env.META_WABA_TOKEN || !phoneNumberId) {
       logger.warn("WhatsApp integration not configured (Missing token or phone number ID)");
       return false;
     }
@@ -19,7 +21,7 @@ export class WhatsappService {
 
     try {
       const response = await fetch(
-        `https://graph.facebook.com/${env.META_API_VERSION}/${env.META_PHONE_NUMBER_ID}/messages`,
+        `https://graph.facebook.com/${env.META_API_VERSION}/${phoneNumberId}/messages`,
         {
           method: "POST",
           headers: {

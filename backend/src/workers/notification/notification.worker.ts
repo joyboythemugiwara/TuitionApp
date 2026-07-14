@@ -13,6 +13,7 @@ import { db } from "@/database/client";
 import { users } from "@/database/schemas/public/users";
 import { eq, isNotNull, and } from "drizzle-orm";
 import { WhatsappService } from "@/common/services/whatsapp.service";
+import { TenantsRepository } from "@/modules/tenants/tenants.repository";
 
 // A robust worker needs to resolve dependencies
 const processAnnouncement = async (job: Job<ProcessAnnouncementPayload>) => {
@@ -86,14 +87,19 @@ const processAnnouncement = async (job: Job<ProcessAnnouncementPayload>) => {
 };
 
 const sendSms = async (job: Job<SendSmsPayload>) => {
-  const { phones, message } = job.data;
+  const { tenantId, phones, message } = job.data;
+  
+  const tenantsRepo = container.resolve(TenantsRepository);
+  const tenant = await tenantsRepo.findById(tenantId);
+  const tenantPhoneNumberId = tenant?.phoneNumberId;
+
   const whatsappService = container.resolve(WhatsappService);
   
-  logger.info({ phonesCount: phones.length }, "Sending WhatsApp messages");
+  logger.info({ phonesCount: phones.length, tenantId }, "Sending WhatsApp messages");
 
   // Send messages sequentially to avoid hitting rate limits instantly
   for (const phone of phones) {
-    await whatsappService.sendMessage(phone, message);
+    await whatsappService.sendMessage(phone, message, tenantPhoneNumberId);
   }
 };
 
