@@ -11,5 +11,4 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Ping backend health endpoint
-        # Replace the URL below with your actual Render backend URL once it's deployed
-        run: curl -s https://your-backend-url-on-render.onrender.com/api/health || echo "Failed to ping"
+        run: curl -s https://tuitionapp-5hdq.onrender.com/health || echo "Failed to ping"
