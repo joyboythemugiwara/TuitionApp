@@ -128,7 +128,7 @@ export class FeesRepository {
 
       await this.auditService.logWithinTransaction(tx, {
         tenantId,
-        actorId: paymentData.markedBy || "system",
+        actorId: paymentData.markedBy || undefined,
         action: "payment.create",
         entity: "payment",
         entityId: payment.id,
@@ -148,7 +148,7 @@ export class FeesRepository {
 
       await this.auditService.logWithinTransaction(tx, {
         tenantId,
-        actorId: actorId || "system",
+        actorId: actorId || undefined,
         action: "fee_record.update",
         entity: "fee_record",
         entityId: id,

@@ -222,16 +222,16 @@ export class FeesService {
 
         paymentLinkId = paymentLink.id;
         paymentLinkUrl = paymentLink.short_url;
-
-        await this.repository.updateFeeRecord(tenantId, undefined, feeRecordId, {
-          razorpayLinkId: paymentLinkId,
-          paymentLinkUrl: paymentLinkUrl,
-          paymentLinkToken: paymentLinkId,
-        });
       } catch (error: any) {
-        const errorMsg = error.error?.description || error.message || JSON.stringify(error);
+        const errorMsg = error.error?.description || error.message || "Unknown error";
         throw new BadRequestError(`Failed to generate Razorpay link: ${errorMsg}`);
       }
+
+      await this.repository.updateFeeRecord(tenantId, undefined, feeRecordId, {
+        razorpayLinkId: paymentLinkId,
+        paymentLinkUrl: paymentLinkUrl,
+        paymentLinkToken: paymentLinkId,
+      });
     }
 
     // DISPATCH WHATSAPP MESSAGE
