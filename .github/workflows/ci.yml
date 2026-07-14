@@ -1,0 +1,38 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      # --- Backend ---
+      - name: Install Backend Dependencies
+        working-directory: ./backend
+        run: bun install
+
+      - name: Run Backend Tests
+        working-directory: ./backend
+        run: bun test # Assumes you have a test script in package.json using vitest
+
+      # --- Frontend ---
+      - name: Install Frontend Dependencies
+        working-directory: ./frontend
+        run: bun install
+
+      - name: Build Frontend
+        working-directory: ./frontend
+        run: bun run build
