@@ -35,15 +35,21 @@ export class WebhooksController {
 
       // We only care about successful payments
       if (event === "payment.captured" || event === "payment_link.paid") {
-        const paymentEntity = payload.payload.payment.entity;
+        const paymentEntity = payload.payload.payment?.entity;
+        const paymentLinkEntity = payload.payload.payment_link?.entity;
         
-        // When we create Razorpay links, we must pass tenantId and feeRecordId in notes
-        const tenantId = paymentEntity.notes?.tenantId;
-        const feeRecordId = paymentEntity.notes?.feeRecordId;
+        // Notes could be on the payment link or the payment itself depending on the event
+        const notes = paymentLinkEntity?.notes || paymentEntity?.notes || {};
+        const tenantId = notes.tenantId;
+        const feeRecordId = notes.feeRecordId;
 
         if (!tenantId || !feeRecordId) {
-          logger.warn({ paymentId: paymentEntity.id }, "Payment missing tenantId or feeRecordId in notes");
+          logger.warn({ paymentId: paymentEntity?.id || paymentLinkEntity?.id }, "Payment missing tenantId or feeRecordId in notes");
           return { status: "ignored", reason: "missing_metadata" };
+        }
+
+        if (!paymentEntity) {
+          return { status: "ignored", reason: "missing_payment_entity" };
         }
 
         // Amount is in paise, convert to rupees
