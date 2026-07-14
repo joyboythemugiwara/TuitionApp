@@ -20,13 +20,13 @@ export class FeesController {
     return successResponse("Fees retrieved successfully", fees);
   }
 
-  async markManualPayment(tenantId: string, actorId: string, body: RecordManualPaymentRequest) {
+  async markManualPayment(tenantId: string, actorId: string, body: MarkPaymentRequest) {
     const payment = await this.service.markManualPayment(tenantId, actorId, body);
     return successResponse("Payment recorded successfully", payment, 201);
   }
 
-  async generatePaymentLink(tenantId: string, feeRecordId: string) {
-    const link = await this.service.generatePaymentLink(tenantId, feeRecordId);
-    return successResponse("Payment link generated successfully", link, 201);
+  async generatePaymentLink(tenantId: string, feeRecordId: string, body?: { isReminder?: boolean }) {
+    const link = await this.service.generatePaymentLink(tenantId, feeRecordId, body?.isReminder);
+    return successResponse(body?.isReminder ? "Reminder sent successfully" : "Payment link generated successfully", link, 201);
   }
 }

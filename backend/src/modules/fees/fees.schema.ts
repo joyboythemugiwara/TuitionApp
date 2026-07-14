@@ -71,6 +71,9 @@ export const MarkPaymentSchema = {
 };
 
 export const GeneratePaymentLinkSchema = {
+  body: t.Optional(t.Object({
+    isReminder: t.Optional(t.Boolean()),
+  })),
   response: {
     201: t.Object({
       success: t.Boolean(),

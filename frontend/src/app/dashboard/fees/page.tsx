@@ -140,9 +140,9 @@ export default function FeesPage() {
     document.body.removeChild(link);
   };
 
-  const generatePaymentLink = async (feeId: string) => {
+  const generatePaymentLink = async (feeId: string, isReminder = false) => {
     try {
-      const res = await api.post(`/fees/${feeId}/payment-link`);
+      const res = await api.post(`/fees/${feeId}/payment-link`, { isReminder });
       toast.success("Payment link generated and sent to student!");
       mutate();
     } catch (err: any) {
@@ -336,10 +336,13 @@ export default function FeesPage() {
                                   <CreditCard className="w-4 h-4 mr-2" />
                                   Send Payment Link
                                 </DropdownMenuItem>
-                                <DropdownMenuItem className="focus:bg-neutral-800 focus:text-white cursor-pointer text-indigo-400">
-                                  <Mail className="w-4 h-4 mr-2" />
-                                  Send Reminder
-                                </DropdownMenuItem>
+                                  <DropdownMenuItem 
+                                    className="focus:bg-neutral-800 focus:text-white cursor-pointer text-indigo-400"
+                                    onClick={() => generatePaymentLink(fee.id, true)}
+                                  >
+                                    <Mail className="w-4 h-4 mr-2" />
+                                    Send Reminder
+                                  </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </>

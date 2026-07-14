@@ -15,7 +15,7 @@ export const feesRoutes = new Elysia({ prefix: "/fees" })
   .post(
     "/generate",
     async ({ body, user, set }) => {
-      const response = await feesController.generateFees(user.tenantId, body);
+      const response = await feesController.generateFees(user.tenantId!, body);
       set.status = response.statusCode;
       return response.body;
     },
@@ -24,7 +24,7 @@ export const feesRoutes = new Elysia({ prefix: "/fees" })
   .get(
     "/",
     async ({ query, user, set }) => {
-      const response = await feesController.listFees(user.tenantId, query);
+      const response = await feesController.listFees(user.tenantId!, query);
       set.status = response.statusCode;
       return response.body;
     },
@@ -33,7 +33,7 @@ export const feesRoutes = new Elysia({ prefix: "/fees" })
   .post(
     "/payments/manual",
     async ({ user, body, set }) => {
-      const response = await feesController.markManualPayment(user.tenantId, user.userId, body);
+      const response = await feesController.markManualPayment(user.tenantId!, user.userId!, body);
       set.status = response.statusCode;
       return response.body;
     },
@@ -41,8 +41,8 @@ export const feesRoutes = new Elysia({ prefix: "/fees" })
   )
   .post(
     "/:id/payment-link",
-    async ({ params: { id }, user, set }) => {
-      const response = await feesController.generatePaymentLink(user.tenantId, id);
+    async ({ params: { id }, body, user, set }) => {
+      const response = await feesController.generatePaymentLink(user.tenantId!, id, body as any);
       set.status = response.statusCode;
       return response.body;
     },

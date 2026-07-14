@@ -3,7 +3,7 @@ import { feeRecords, NewFeeRecord, FeeRecord } from "@/database/schemas/tenant/f
 import { payments, NewPayment, Payment } from "@/database/schemas/tenant/payments";
 import { students } from "@/database/schemas/tenant/students";
 import { studentPhones } from "@/database/schemas/tenant/student-phones";
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import { batches } from "@/database/schemas/tenant/batches";
 import { Repository, Inject } from "@/common/decorators";
 import { AuditService } from "@/common/services/audit.service";
@@ -14,23 +14,29 @@ export class FeesRepository {
   async getActiveStudents(tenantId: string, filter?: { batchId?: string; studentId?: string }) {
     const tenantDb = getTenantDb(getTenantSchemaName(tenantId));
     return await withTenantTx(tenantId, async (tx) => {
-      let query = tx.select({
-        student: students,
-        batchDefaultFee: batches.defaultFee
-      }).from(students)
-      .leftJoin(batches, eq(students.batchId, batches.id))
-      .where(eq(students.status, "active")).$dynamic();
-      
       const conditions = [eq(students.status, "active")];
       if (filter?.batchId) conditions.push(eq(students.batchId, filter.batchId));
       if (filter?.studentId) conditions.push(eq(students.id, filter.studentId));
 
-      return await tx.select({
+      const rows = await tx.select({
         student: students,
         batchDefaultFee: batches.defaultFee
       }).from(students)
       .leftJoin(batches, eq(students.batchId, batches.id))
       .where(and(...conditions));
+
+      if (rows.length === 0) return [];
+
+      const studentIds = rows.map((r: any) => r.student.id);
+      
+      const allPhones = await tx.select()
+        .from(studentPhones)
+        .where(inArray(studentPhones.studentId, studentIds));
+
+      return rows.map((row: any) => ({
+        ...row,
+        phones: allPhones.filter((p: any) => p.studentId === row.student.id)
+      }));
     });
   }
 
@@ -50,11 +56,11 @@ export class FeesRepository {
         await this.auditService.logWithinTransaction(tx, {
           tenantId,
           // actorId: undefined, // System action
-          action: "fee_record.bulk_generate",
+          action: "fee.create" as any,
           entity: "fee_record",
           entityId: "00000000-0000-0000-0000-000000000000",
-          newValue: { count: inserted.length, records: inserted.map(r => r.id) }
-        });
+          newValue: { count: inserted.length, records: inserted.map((r: any) => r.id) }
+        } as any);
       }
       
       return inserted.length;
@@ -122,7 +128,7 @@ export class FeesRepository {
 
       await this.auditService.logWithinTransaction(tx, {
         tenantId,
-        actorId: paymentData.markedBy,
+        actorId: paymentData.markedBy || "system",
         action: "payment.create",
         entity: "payment",
         entityId: payment.id,
@@ -142,7 +148,7 @@ export class FeesRepository {
 
       await this.auditService.logWithinTransaction(tx, {
         tenantId,
-        actorId,
+        actorId: actorId || "system",
         action: "fee_record.update",
         entity: "fee_record",
         entityId: id,

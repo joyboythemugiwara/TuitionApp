@@ -69,11 +69,11 @@ describe("FeesService", () => {
     });
 
     it("should successfully generate fee records for active students using Promise.all optimization", async () => {
-      findTenantMock.mockResolvedValueOnce({ id: "tenant-1", feeDueDay: 5 });
+      findTenantMock.mockResolvedValueOnce({ id: "tenant-1", feeDueDay: 5, wabaId: "waba-1", phoneNumberId: "phone-1" });
       getActiveStudentsMock.mockResolvedValueOnce([
-        { student: { id: "student-1", monthlyFee: 1500 } },
-        { student: { id: "student-2", monthlyFee: 0 } }, // Should be filtered out
-        { student: { id: "student-3", monthlyFee: 2000 } }
+        { student: { id: "student-1", monthlyFee: 1500, name: "A" }, phones: [{ number: "1" }] },
+        { student: { id: "student-2", monthlyFee: 0, name: "B" }, phones: [] }, // Should be filtered out
+        { student: { id: "student-3", monthlyFee: 2000, name: "C" }, phones: [{ number: "2" }] }
       ]);
       generateFeeRecordsMock.mockResolvedValueOnce(2);
 
@@ -82,7 +82,7 @@ describe("FeesService", () => {
       expect(count).toBe(2);
       expect(generateFeeRecordsMock).toHaveBeenCalledTimes(1);
       
-      const recordsPassed = generateFeeRecordsMock.mock.calls[0][1];
+      const recordsPassed = generateFeeRecordsMock.mock.calls[0]![1];
       expect(recordsPassed).toHaveLength(2);
       expect(recordsPassed[0]).toMatchObject({ studentId: "student-1", amount: "1500", dueDate: "2023-10-05" });
       expect(recordsPassed[1]).toMatchObject({ studentId: "student-3", amount: "2000", dueDate: "2023-10-05" });

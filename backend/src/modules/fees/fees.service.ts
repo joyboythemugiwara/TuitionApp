@@ -43,7 +43,11 @@ export class FeesService {
     ]);
     if (!tenant) throw new NotFoundError("Tenant not found");
     
-    const records = students.map(s => {
+    if (!tenant?.wabaId || !tenant?.phoneNumberId) {
+      throw new BadRequestError("WhatsApp is not configured for this center. Please configure it in the Settings page to send automated fee alerts.");
+    }
+
+    const records = students.map((s: any) => {
       const student = s.student;
       const batchFee = s.batchDefaultFee;
       
@@ -52,14 +56,33 @@ export class FeesService {
       
       return {
         studentId: student.id,
+        studentName: student.name,
+        studentPhones: s.phones.map((p: any) => p.number),
         month: request.month,
         amount: student.monthlyFee?.toString() || batchFee?.toString() || "0",
         dueDate: dueDate,
         status: "pending" as const,
       };
-    }).filter(record => parseFloat(record.amount) > 0);
+    }).filter((record: any) => parseFloat(record.amount) > 0);
 
-    return await this.repository.generateFeeRecords(tenantId, records);
+    const dbRecords = records.map(({ studentName, studentPhones, ...rest }: any) => rest);
+    const count = await this.repository.generateFeeRecords(tenantId, dbRecords);
+
+    if (count > 0) {
+      // Send WhatsApp notifications for newly generated fees
+      for (const record of records) {
+        const feeMonth = dayjs(record.month).format("MMMM YYYY");
+        const message = `Hello! The fee of ₹${record.amount} for ${record.studentName} for the month of ${feeMonth} has been generated and is due by ${dayjs(record.dueDate).format("DD MMM YYYY")}.\n\nPlease contact the center for the payment link or to pay in cash.`;
+        
+        await notificationQueue.add("send_sms", {
+          tenantId,
+          phones: record.studentPhones,
+          message,
+        });
+      }
+    }
+
+    return count;
   }
 
   async listFees(tenantId: string, filter?: any): Promise<FeeRecordResponse[]> {
@@ -67,7 +90,7 @@ export class FeesService {
     return list.map(fee => this.mapToResponse(fee));
   }
 
-  async markManualPayment(tenantId: string, actorId: string, data: RecordManualPaymentRequest) {
+  async markManualPayment(tenantId: string, actorId: string, data: MarkPaymentRequest) {
     const feeRecord = await this.repository.findFeeRecord(tenantId, data.feeRecordId);
     if (!feeRecord) {
       throw new NotFoundError("Fee record not found");
@@ -138,74 +161,96 @@ export class FeesService {
     }
   }
 
-  async generatePaymentLink(tenantId: string, feeRecordId: string): Promise<{ paymentLinkUrl: string, paymentLinkId: string }> {
+  async generatePaymentLink(tenantId: string, feeRecordId: string, isReminder = false): Promise<{ paymentLinkUrl: string, paymentLinkId: string }> {
     const feeRecord = await this.repository.findFeeRecord(tenantId, feeRecordId);
     if (!feeRecord) throw new NotFoundError("Fee record not found");
     if (feeRecord.status === "paid") throw new BadRequestError("Fee is already paid");
     
-    // Check if it already has an active link
-    if (feeRecord.paymentLinkUrl && feeRecord.razorpayLinkId) {
-      return {
-        paymentLinkUrl: feeRecord.paymentLinkUrl,
-        paymentLinkId: feeRecord.razorpayLinkId
-      };
-    }
-
-    const [tenant, student] = await Promise.all([
+    const [tenant, studentObj] = await Promise.all([
       this.tenantsRepo.findById(tenantId),
       this.studentsRepo.findById(tenantId, feeRecord.studentId)
     ]);
     if (!tenant?.razorpayKeyId || !tenant?.razorpayKeySecret) {
-      throw new BadRequestError("Razorpay is not configured for this center");
+      throw new BadRequestError("Razorpay is not configured for this center. Please configure it in the Settings page.");
     }
-    if (!student) throw new NotFoundError("Student not found");
-
-    // Initialize Tenant's Razorpay Instance
-    const razorpay = new Razorpay({
-      key_id: tenant.razorpayKeyId,
-      key_secret: tenant.razorpayKeySecret,
-    });
+    if (!tenant?.wabaId || !tenant?.phoneNumberId) {
+      throw new BadRequestError("WhatsApp is not configured for this center. Please configure it in the Settings page.");
+    }
+    if (!studentObj) throw new NotFoundError("Student not found");
+    const { student, phones } = studentObj;
 
     const amountDue = parseFloat(feeRecord.amount) - parseFloat(feeRecord.amountPaid);
     if (amountDue <= 0) throw new BadRequestError("No amount is due");
 
     // Primary phone number for the Razorpay link
-    const primaryPhone = student.phones.find((p: any) => p.isPrimary)?.number || student.phones[0]?.number;
+    const primaryPhone = phones.find((p: any) => p.isPrimary)?.number || phones[0]?.number;
+    
+    // All phones to receive WhatsApp notification
+    const studentPhones = phones.map((p: any) => p.number);
 
-    try {
-      const paymentLink = await razorpay.paymentLink.create({
-        amount: Math.round(amountDue * 100), // Amount in paise
-        currency: "INR",
-        accept_partial: true,
-        description: `Fee Payment for ${dayjs(feeRecord.month).format("MMMM YYYY")}`,
-        customer: {
-          name: student.name,
-          contact: primaryPhone || undefined,
-        },
-        notify: {
-          sms: true,
-          email: false,
-        },
-        reminder_enable: true,
-        notes: {
-          tenantId: tenantId,
-          feeRecordId: feeRecordId,
-        },
+    let paymentLinkUrl = feeRecord.paymentLinkUrl;
+    let paymentLinkId = feeRecord.razorpayLinkId;
+
+    // Check if it already has an active link
+    if (!paymentLinkUrl || !paymentLinkId) {
+      // Initialize Tenant's Razorpay Instance
+      const razorpay = new Razorpay({
+        key_id: tenant.razorpayKeyId,
+        key_secret: tenant.razorpayKeySecret,
       });
 
-      await this.repository.updateFeeRecord(tenantId, undefined, feeRecordId, {
-        razorpayLinkId: paymentLink.id,
-        paymentLinkUrl: paymentLink.short_url,
-        paymentLinkToken: paymentLink.id,
-      });
+      try {
+        const paymentLink = await razorpay.paymentLink.create({
+          amount: Math.round(amountDue * 100), // Amount in paise
+          currency: "INR",
+          accept_partial: true,
+          description: `Fee Payment for ${dayjs(feeRecord.month).format("MMMM YYYY")}`,
+          customer: {
+            name: student.name,
+            contact: primaryPhone || undefined,
+          },
+          notify: {
+            sms: true,
+            email: false,
+          },
+          reminder_enable: true,
+          notes: {
+            tenantId: tenantId,
+            feeRecordId: feeRecordId,
+          },
+        });
 
-      return {
-        paymentLinkUrl: paymentLink.short_url,
-        paymentLinkId: paymentLink.id
-      };
-    } catch (error: any) {
-      const errorMsg = error.error?.description || error.message || JSON.stringify(error);
-      throw new BadRequestError(`Failed to generate Razorpay link: ${errorMsg}`);
+        paymentLinkId = paymentLink.id;
+        paymentLinkUrl = paymentLink.short_url;
+
+        await this.repository.updateFeeRecord(tenantId, undefined, feeRecordId, {
+          razorpayLinkId: paymentLinkId,
+          paymentLinkUrl: paymentLinkUrl,
+          paymentLinkToken: paymentLinkId,
+        });
+      } catch (error: any) {
+        const errorMsg = error.error?.description || error.message || JSON.stringify(error);
+        throw new BadRequestError(`Failed to generate Razorpay link: ${errorMsg}`);
+      }
     }
+
+    // DISPATCH WHATSAPP MESSAGE
+    const feeMonth = dayjs(feeRecord.month).format("MMMM YYYY");
+    const introText = isReminder 
+      ? `Gentle Reminder: The fee of ₹${amountDue} for ${student.name} for the month of ${feeMonth} is pending.`
+      : `Hello! The fee of ₹${amountDue} for ${student.name} for the month of ${feeMonth} has been generated.`;
+      
+    const message = `${introText}\n\nYou can securely pay online using the following link:\n${paymentLinkUrl}\n\nThank you!`;
+
+    await notificationQueue.add("send_sms", {
+      tenantId,
+      phones: studentPhones,
+      message,
+    });
+
+    return {
+      paymentLinkUrl,
+      paymentLinkId
+    };
   }
 }
