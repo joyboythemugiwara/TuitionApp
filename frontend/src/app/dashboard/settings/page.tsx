@@ -54,14 +54,19 @@ export default function SettingsPage() {
     e.preventDefault();
     setSaving(true);
     try {
-      await api.patch("/tenants/me", {
+      const payload: any = {
         name: formData.name,
         feeDueDay: Number(formData.feeDueDay),
         wabaId: formData.wabaId,
         phoneNumberId: formData.phoneNumberId,
         razorpayKeyId: formData.razorpayKeyId,
-        razorpayKeySecret: formData.razorpayKeySecret,
-      });
+      };
+
+      if (formData.razorpayKeySecret?.trim() !== "") {
+        payload.razorpayKeySecret = formData.razorpayKeySecret;
+      }
+
+      await api.patch("/tenants/me", payload);
       toast.success("Settings saved successfully!");
       mutate(); // refresh data
     } catch (err: any) {
