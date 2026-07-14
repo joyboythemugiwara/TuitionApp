@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useMetadata } from "@/providers/MetadataProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Save, Loader2, Building2, MessageSquare, CreditCard, CalendarDays, CheckCircle2 } from "lucide-react";
+import { Save, Loader2, Building2, MessageSquare, CreditCard, CalendarDays, CheckCircle2, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import useSWR from "swr";
@@ -26,6 +26,7 @@ export default function SettingsPage() {
 
   const [saving, setSaving] = useState(false);
   const [showRazorpay, setShowRazorpay] = useState(false);
+  const [showRazorpaySecret, setShowRazorpaySecret] = useState(false);
   const [showWhatsapp, setShowWhatsapp] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -228,13 +229,22 @@ export default function SettingsPage() {
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-neutral-300">Razorpay Key Secret</label>
-                  <Input 
-                    type="password"
-                    value={formData.razorpayKeySecret}
-                    onChange={(e) => setFormData(prev => ({ ...prev, razorpayKeySecret: e.target.value }))}
-                    className="bg-neutral-900 border-neutral-800 focus:ring-1 focus:ring-emerald-500 text-white font-mono text-sm"
-                    placeholder="••••••••••••••••"
-                  />
+                  <div className="relative">
+                    <Input 
+                      type={showRazorpaySecret ? "text" : "password"}
+                      value={formData.razorpayKeySecret}
+                      onChange={(e) => setFormData(prev => ({ ...prev, razorpayKeySecret: e.target.value }))}
+                      className="bg-neutral-900 border-neutral-800 focus:ring-1 focus:ring-emerald-500 text-white font-mono text-sm pr-10"
+                      placeholder={tenant?.razorpayKeyId ? "••••••••••••••••••••••••" : ""}
+                    />
+                    <button 
+                      type="button"
+                      onClick={() => setShowRazorpaySecret(!showRazorpaySecret)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white"
+                    >
+                      {showRazorpaySecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
