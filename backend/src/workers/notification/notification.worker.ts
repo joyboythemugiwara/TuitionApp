@@ -12,6 +12,7 @@ import { messaging } from "@/firebase";
 import { db } from "@/database/client";
 import { users } from "@/database/schemas/public/users";
 import { eq, isNotNull, and } from "drizzle-orm";
+import { WhatsappService } from "@/common/services/whatsapp.service";
 
 // A robust worker needs to resolve dependencies
 const processAnnouncement = async (job: Job<ProcessAnnouncementPayload>) => {
@@ -85,8 +86,15 @@ const processAnnouncement = async (job: Job<ProcessAnnouncementPayload>) => {
 };
 
 const sendSms = async (job: Job<SendSmsPayload>) => {
-  // Integrate with MSG91 or Meta WABA here
-  logger.info({ phonesCount: job.data.phones.length }, "Sending SMS/WhatsApp messages");
+  const { phones, message } = job.data;
+  const whatsappService = container.resolve(WhatsappService);
+  
+  logger.info({ phonesCount: phones.length }, "Sending WhatsApp messages");
+
+  // Send messages sequentially to avoid hitting rate limits instantly
+  for (const phone of phones) {
+    await whatsappService.sendMessage(phone, message);
+  }
 };
 
 const sendPush = async (job: Job<SendPushPayload>) => {

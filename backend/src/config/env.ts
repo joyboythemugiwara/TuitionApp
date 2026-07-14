@@ -31,6 +31,7 @@ export const env = envsafe({
 
     // Meta WhatsApp Business API
     META_WABA_TOKEN: str({ allowEmpty: true, devDefault: "" }),
+    META_PHONE_NUMBER_ID: str({ allowEmpty: true, devDefault: "" }),
     META_API_VERSION: str({
         devDefault: "v19.0",
     }),
