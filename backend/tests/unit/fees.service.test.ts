@@ -65,15 +65,15 @@ describe("FeesService", () => {
 
       await expect(feesService.generateFees("tenant-1", { month: "2023-10" })).rejects.toThrow(NotFoundError);
       expect(findTenantMock).toHaveBeenCalledWith("tenant-1");
-      expect(getActiveStudentsMock).toHaveBeenCalledWith("tenant-1");
+      expect(getActiveStudentsMock).toHaveBeenCalledWith("tenant-1", { batchId: undefined, studentId: undefined });
     });
 
     it("should successfully generate fee records for active students using Promise.all optimization", async () => {
       findTenantMock.mockResolvedValueOnce({ id: "tenant-1", feeDueDay: 5 });
       getActiveStudentsMock.mockResolvedValueOnce([
-        { id: "student-1", monthlyFee: 1500 },
-        { id: "student-2", monthlyFee: 0 }, // Should be filtered out
-        { id: "student-3", monthlyFee: 2000 }
+        { student: { id: "student-1", monthlyFee: 1500 } },
+        { student: { id: "student-2", monthlyFee: 0 } }, // Should be filtered out
+        { student: { id: "student-3", monthlyFee: 2000 } }
       ]);
       generateFeeRecordsMock.mockResolvedValueOnce(2);
 
