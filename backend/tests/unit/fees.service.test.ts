@@ -102,8 +102,10 @@ describe("FeesService", () => {
     
     it("should return existing link if already generated", async () => {
       findFeeRecordMock.mockResolvedValueOnce({ 
-        id: "fee-1", status: "pending", paymentLinkUrl: "http://link", razorpayLinkId: "rzp_123" 
+        id: "fee-1", status: "pending", paymentLinkUrl: "http://link", razorpayLinkId: "rzp_123", amount: "1500", amountPaid: "0", studentId: "student-1", month: "2023-10"
       });
+      findTenantMock.mockResolvedValueOnce({ id: "tenant-1", razorpayKeyId: "key", razorpayKeySecret: "secret", wabaId: "w1", phoneNumberId: "p1" });
+      findStudentMock.mockResolvedValueOnce({ student: { id: "student-1", name: "A" }, phones: [{ number: "1" }] });
       const result = await feesService.generatePaymentLink("tenant-1", "fee-1");
       expect(result).toEqual({ paymentLinkUrl: "http://link", paymentLinkId: "rzp_123" });
     });
@@ -113,7 +115,7 @@ describe("FeesService", () => {
       
       // Concurrently executed!
       findTenantMock.mockResolvedValueOnce({ id: "tenant-1" }); // No razorpay keys
-      findStudentMock.mockResolvedValueOnce({ id: "student-1" });
+      findStudentMock.mockResolvedValueOnce({ student: { id: "student-1" }, phones: [] });
 
       await expect(feesService.generatePaymentLink("tenant-1", "fee-1")).rejects.toThrow(/Razorpay is not configured/);
       expect(findTenantMock).toHaveBeenCalledWith("tenant-1");
