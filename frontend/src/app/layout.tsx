@@ -3,6 +3,7 @@ import { Toaster } from "@/components/ui/sonner";
 import Script from "next/script";
 import { MetadataProvider } from "@/providers/MetadataProvider";
 import { ThemeProvider } from "@/providers/ThemeProvider";
+import { PostHogProvider } from "@/providers/PostHogProvider";
 import "./globals.css";
 import { Geist } from "next/font/google";
 import { cn } from "@/lib/utils";
@@ -27,16 +28,18 @@ export default function RootLayout({
   return (
     <html lang="en" className={cn("font-sans", geist.variable)} suppressHydrationWarning>
       <body suppressHydrationWarning>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="dark"
-          disableTransitionOnChange
-        >
-          <MetadataProvider>
-            {children}
-            <Toaster richColors position="top-right" />
-          </MetadataProvider>
-        </ThemeProvider>
+        <PostHogProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="dark"
+            disableTransitionOnChange
+          >
+            <MetadataProvider>
+              {children}
+              <Toaster richColors position="top-right" />
+            </MetadataProvider>
+          </ThemeProvider>
+        </PostHogProvider>
         <Script src="https://accounts.google.com/gsi/client" strategy="beforeInteractive" />
       </body>
     </html>

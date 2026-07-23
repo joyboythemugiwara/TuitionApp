@@ -1,4 +1,5 @@
 import "reflect-metadata";
+import { Sentry } from "./config/sentry";
 
 import { app } from "./app";
 import { env } from "@/config/env";
@@ -53,10 +54,12 @@ async function bootstrap() {
   process.on("SIGTERM", () => shutdown("SIGTERM"));
 
   process.on("unhandledRejection", (reason) => {
+    Sentry.captureException(reason);
     logger.error({ reason }, "Unhandled promise rejection");
   });
 
   process.on("uncaughtException", (error) => {
+    Sentry.captureException(error);
     logger.error({ error }, "Uncaught exception. Exiting.");
     process.exit(1);
   });

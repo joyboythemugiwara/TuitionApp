@@ -1,6 +1,7 @@
 import { Elysia } from "elysia";
 import { cors } from "@elysiajs/cors";
 import { serverTiming } from "@elysia/server-timing";
+import { rateLimit } from "elysia-rate-limit";
 
 import { swaggerConfig } from "@/config/swagger";
 
@@ -24,6 +25,12 @@ export const app = new Elysia()
 
   // ── Plugins ────────────────────────────────────────────────────────────────
   .use(serverTiming())
+  .use(
+    rateLimit({
+      max: 100, // 100 requests per minute
+      duration: 60000,
+    })
+  )
 
   .use(
     cors({
@@ -99,6 +106,10 @@ export const app = new Elysia()
     }
 
     // Unknown / unexpected errors
+    import("@sentry/bun").then(Sentry => {
+      Sentry.captureException(error);
+    });
+
     logger.error(
       {
         error: error instanceof Error ? error.stack : error,

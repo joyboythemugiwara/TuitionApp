@@ -3,6 +3,7 @@ import { FeesService } from "@/modules/fees/fees.service";
 import { env } from "@/config/env";
 import { validateWebhookSignature } from "razorpay/dist/utils/razorpay-utils";
 import { logger } from "@/common/logger/logger";
+import { posthog } from "@/config/posthog";
 import { BadRequestError } from "@/common/errors/http.error";
 
 @Controller()
@@ -61,6 +62,17 @@ export class WebhooksController {
           mode: "online",
           razorpayPaymentId: paymentEntity.id,
           razorpayOrderId: paymentEntity.order_id,
+        });
+
+        posthog.capture({
+          distinctId: tenantId, // Using tenantId as distinctId for system-level webhooks
+          event: 'fee_paid_online',
+          properties: {
+            tenantId,
+            feeRecordId,
+            amount,
+            currency: paymentEntity.currency
+          }
         });
 
         logger.info({ tenantId, feeRecordId }, "Successfully processed Razorpay webhook payment");

@@ -4,6 +4,8 @@ import { CreateStudentRequest, UpdateStudentRequest, StudentResponse } from "./s
 import { NotFoundError, BadRequestError } from "@/common/errors/http.error";
 import { redis } from "@/database/redis";
 import { env } from "@/config/env";
+import { logger } from "@/common/logger/logger";
+import { posthog } from "@/config/posthog";
 
 import { BatchesRepository } from "../batches/batches.repository";
 
@@ -39,12 +41,17 @@ export class StudentsService {
 
   private async invalidateStudentsCache(tenantId: string) {
     try {
-      const keys = await redis.keys(`tenant:${tenantId}:*students:*`);
-      if (keys.length > 0) {
-        await redis.del(...keys);
-      }
+      let cursor = '0';
+      const pattern = `tenant:${tenantId}:*students:*`;
+      do {
+        const [nextCursor, keys] = await redis.scan(cursor, 'MATCH', pattern, 'COUNT', 100);
+        cursor = nextCursor;
+        if (keys.length > 0) {
+          await redis.del(...keys);
+        }
+      } while (cursor !== '0');
     } catch (e) {
-      // Ignore cache invalidation errors
+      logger.warn({ error: e }, "Failed to invalidate Redis cache");
     }
   }
 
@@ -70,6 +77,16 @@ export class StudentsService {
     }, data.phones);
 
     await this.invalidateStudentsCache(tenantId);
+
+    posthog.capture({
+      distinctId: actorId,
+      event: 'student_created',
+      properties: {
+        tenantId,
+        batchId: data.batchId
+      }
+    });
+
     return this.mapToResponse(student, phones);
   }
 
@@ -121,7 +138,7 @@ export class StudentsService {
         const cached = await redis.get(cacheKey);
         if (cached) return JSON.parse(cached);
       } catch (e) {
-        // Ignore cache read errors
+        logger.warn({ error: e }, "Failed to read from Redis cache");
       }
     }
 
@@ -136,7 +153,7 @@ export class StudentsService {
         // Cache for 5 minutes (300 seconds)
         await redis.set(cacheKey, JSON.stringify(response), "EX", 300);
       } catch (e) {
-        // Ignore cache write errors
+        logger.warn({ error: e }, "Failed to write to Redis cache");
       }
     }
 

@@ -8,6 +8,7 @@ import {
 } from "./auth.types";
 import { Controller, Inject } from "@/common/decorators";
 import { successResponse } from "@/common/responses";
+import { posthog } from "@/config/posthog";
 
 @Controller()
 export class AuthController {
@@ -31,6 +32,15 @@ export class AuthController {
     });
     
     const refreshToken = await this.service.createSession(user.id, user.tenantId);
+
+    posthog.capture({
+      distinctId: user.id,
+      event: 'user_logged_in',
+      properties: {
+        tenantId: user.tenantId,
+        method: 'firebase'
+      }
+    });
 
     // Return formatted success response
     return successResponse("Successfully logged in", {
@@ -65,6 +75,15 @@ export class AuthController {
     });
     
     const refreshToken = await this.service.createSession(user.id, user.tenantId);
+
+    posthog.capture({
+      distinctId: user.id,
+      event: 'user_logged_in',
+      properties: {
+        tenantId: user.tenantId,
+        method: 'email'
+      }
+    });
 
     return successResponse("Successfully logged in", {
       user: {
@@ -152,6 +171,15 @@ export class AuthController {
   async register(body: RegisterRequest, jwtSign: (payload: any) => Promise<string>) {
     const user = await this.service.register(body);
     
+    posthog.capture({
+      distinctId: user.id,
+      event: 'user_registered',
+      properties: {
+        tenantId: user.tenantId,
+        method: 'email'
+      }
+    });
+
     // They still need to verify email before they can use the app fully,
     // but we can log them in if desired, or just return success.
     return successResponse("Registration successful! Please check your email to verify your account.", {

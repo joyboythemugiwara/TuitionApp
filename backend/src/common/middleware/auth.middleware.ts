@@ -57,7 +57,6 @@ export const jwtAuth = (app: Elysia) => app
     })
   )
   .derive(async ({ headers, jwt }) => {
-    console.log("jwtAuth derive running with headers:", headers);
     const authHeader = headers["authorization"];
     
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
