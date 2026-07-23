@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2, Banknote, QrCode } from "lucide-react";
+import posthog from "posthog-js";
 import QRCode from "react-qr-code";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
@@ -48,6 +49,7 @@ export function RecordPaymentModal({ fee, onRecorded }: { fee: any, onRecorded: 
         mode: formData.mode,
         transactionId: formData.transactionId || undefined,
       });
+      posthog.capture('payment_recorded', { fee_id: fee.id, amount: parseFloat(formData.amount), mode: formData.mode, is_partial: parseFloat(formData.amount) < pendingAmount });
       toast.success("Payment recorded successfully");
       onRecorded();
       setOpen(false);

@@ -42,6 +42,7 @@ import { cn } from "@/lib/utils";
 import Papa from "papaparse";
 import { GenerateFeesModal } from "./GenerateFeesModal";
 import { RecordPaymentModal } from "./RecordPaymentModal";
+import posthog from "posthog-js";
 
 const fetcher = (url: string) => api.get(url).then((res) => res.data);
 
@@ -117,6 +118,7 @@ export default function FeesPage() {
       toast.error("No fees to export");
       return;
     }
+    posthog.capture('fees_exported', { record_count: filteredFees.length, status_filter: statusFilter });
 
     const csvData = filteredFees.map((f: any) => ({
       ID: f.id,
@@ -143,6 +145,7 @@ export default function FeesPage() {
   const generatePaymentLink = async (feeId: string, isReminder = false) => {
     try {
       const res = await api.post(`/fees/${feeId}/payment-link`, { isReminder });
+      posthog.capture(isReminder ? 'payment_reminder_sent' : 'payment_link_sent', { fee_id: feeId });
       toast.success("Payment link generated and sent to student!");
       mutate();
     } catch (err: any) {

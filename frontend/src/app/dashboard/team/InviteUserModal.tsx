@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogTitle, DialogClose } from "@/components/ui
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Mail, User, Shield } from "lucide-react";
+import posthog from "posthog-js";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { mutate } from "swr";
@@ -25,6 +26,7 @@ export function InviteUserModal({ isOpen, onClose }: { isOpen: boolean; onClose:
     
     try {
       await api.post("/users/invite", formData);
+      posthog.capture('team_member_invited', { role: formData.role });
       toast.success(`Invitation sent to ${formData.email}!`);
       mutate("/users"); // Refresh the team list
       onClose();

@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 import { useMetadata } from '@/providers/MetadataProvider';
 import { requestFCMToken } from '@/lib/fcm';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import posthog from 'posthog-js';
 
 // Type definitions for Google One Tap
 declare global {
@@ -81,6 +82,8 @@ export default function LoginPage() {
       setAuth(user, tokens.accessToken, tokens.refreshToken);
       setShowOrgDialog(false);
       setPendingFirebaseToken(null);
+      posthog.identify(user.id, { name: user.name, email: user.email, role: user.role });
+      posthog.capture('user_signed_up', { method: 'google' });
       router.push('/dashboard');
       toast.success('Account created successfully!');
     } catch (err: any) {
@@ -106,9 +109,10 @@ export default function LoginPage() {
       });
       
       const { user, tokens } = response.data.data;
-      
+
       setAuth(user, tokens.accessToken, tokens.refreshToken);
-      
+      posthog.identify(user.id, { name: user.name, email: user.email, role: user.role });
+      posthog.capture('user_logged_in', { method: 'email' });
       router.push('/dashboard');
       toast.success('Successfully signed in!');
     } catch (err: any) {
@@ -137,8 +141,10 @@ export default function LoginPage() {
             // Authenticate with our backend
             const backendResponse = await api.post('/auth/login/firebase', { token });
             const { user, tokens } = backendResponse.data.data;
-            
+
             setAuth(user, tokens.accessToken, tokens.refreshToken);
+            posthog.identify(user.id, { name: user.name, email: user.email, role: user.role });
+            posthog.capture('user_logged_in', { method: 'google_one_tap' });
             router.push('/dashboard');
             toast.success('Successfully signed in with Google One Tap!');
           } catch (err: any) {
@@ -175,8 +181,10 @@ export default function LoginPage() {
       // Send Firebase ID token to backend
       const response = await api.post('/auth/login/firebase', { token });
       const { user, tokens } = response.data.data;
-      
+
       setAuth(user, tokens.accessToken, tokens.refreshToken);
+      posthog.identify(user.id, { name: user.name, email: user.email, role: user.role });
+      posthog.capture('user_logged_in', { method: 'google' });
       router.push('/dashboard');
       toast.success('Successfully signed in with Google!');
     } catch (err: any) {

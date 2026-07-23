@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Plus, Loader2, UploadCloud, Image as ImageIcon } from "lucide-react";
+import posthog from "posthog-js";
 
 export function AddStudentModal({ defaultBatchId, trigger }: { defaultBatchId?: string, trigger?: React.ReactNode }) {
   const [open, setOpen] = useState(false);
@@ -146,7 +147,7 @@ export function AddStudentModal({ defaultBatchId, trigger }: { defaultBatchId?: 
         mutate((key) => typeof key === "string" && key.startsWith(`/students?batchId=${defaultBatchId}`));
       }
       mutate("/dashboard/dashboard");
-      
+      posthog.capture('student_added', { batch_id: batchId, has_custom_fee: !!monthlyFee, has_photo: !!finalPhotoUrl });
       toast.success("Student added successfully!");
       setOpen(false);
       

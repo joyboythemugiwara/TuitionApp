@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Plus, Loader2 } from "lucide-react";
+import posthog from "posthog-js";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 import { capitalizeWords } from "@/lib/utils";
@@ -52,6 +53,7 @@ export function AddBatchModal({ trigger }: { trigger?: React.ReactNode } = {}) {
       }
       
       toast.success("Batch created successfully");
+      posthog.capture('batch_created', { batch_id: newBatch.id, has_teachers: teacherIds.length > 0, teacher_count: teacherIds.length });
       mutate("/batches");
       mutate("/dashboard/dashboard");
       setOpen(false);

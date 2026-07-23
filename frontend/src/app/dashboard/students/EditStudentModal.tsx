@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Plus, Loader2, UploadCloud, Image as ImageIcon } from "lucide-react";
+import posthog from "posthog-js";
 
 export function EditStudentModal({ student, trigger, isOpen, onClose, onSuccess }: { student: any; trigger: React.ReactNode; isOpen?: boolean; onClose?: () => void; onSuccess?: () => void }) {
   const [open, setOpen] = useState(isOpen || false);
@@ -185,7 +186,7 @@ export function EditStudentModal({ student, trigger, isOpen, onClose, onSuccess 
       mutate((key) => typeof key === "string" && key.startsWith("/students"));
       mutate("/dashboard/dashboard");
       if (onSuccess) onSuccess();
-      
+      posthog.capture('student_edited', { student_id: student.id, batch_id: batchId });
       toast.success("Student updated successfully!");
       handleOpenChange(false);
       

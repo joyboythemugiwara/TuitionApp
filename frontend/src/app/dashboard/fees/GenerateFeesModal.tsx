@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2, Plus, Calendar } from "lucide-react";
+import posthog from "posthog-js";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import {
@@ -68,6 +69,7 @@ export function GenerateFeesModal({ onGenerated }: { onGenerated: () => void }) 
 
       const res = await api.post("/fees/generate", payload);
       toast.success(res.data.message || "Fees generated successfully");
+      posthog.capture('fees_generated', { target_type: type, month: formattedMonth, batch_id: type === 'batch' ? batchId : undefined, student_id: type === 'student' ? studentId : undefined });
       onGenerated();
       setOpen(false);
       setMonth("");

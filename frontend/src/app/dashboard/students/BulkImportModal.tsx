@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { UploadCloud, FileText, X, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
+import posthog from "posthog-js";
 import Papa from "papaparse";
 
 export function BulkImportModal() {
@@ -95,6 +96,7 @@ export function BulkImportModal() {
           await api.post("/students/bulk", { students: studentsToCreate });
           
           toast.success(`Successfully imported ${studentsToCreate.length} students!`);
+          posthog.capture('students_imported', { student_count: studentsToCreate.length });
           mutate((key) => typeof key === "string" && key.startsWith("/students"));
           setOpen(false);
           removeFile();

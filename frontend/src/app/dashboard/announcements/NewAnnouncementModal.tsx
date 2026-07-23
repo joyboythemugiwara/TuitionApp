@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Megaphone, Loader2 } from "lucide-react";
+import posthog from "posthog-js";
 import {
   Select,
   SelectContent,
@@ -61,6 +62,7 @@ export function NewAnnouncementModal({ trigger }: { trigger?: React.ReactNode })
         scheduledAt: isScheduled && scheduledAt ? new Date(scheduledAt).toISOString() : undefined
       });
       toast.success(isScheduled ? "Announcement scheduled successfully" : "Announcement broadcasted successfully");
+      posthog.capture('announcement_created', { audience_type: type, is_scheduled: isScheduled, batch_id: type === 'batch' ? batchId : undefined });
       mutate("/announcements");
       mutate("/dashboard/dashboard");
       setOpen(false);

@@ -15,6 +15,7 @@ import { auth, googleProvider } from '@/lib/firebase';
 import { signInWithPopup } from 'firebase/auth';
 import { useMetadata } from '@/providers/MetadataProvider';
 import { useEffect } from 'react';
+import posthog from 'posthog-js';
 
 function GoogleLogo(props: React.SVGProps<SVGSVGElement>) {
   return (
@@ -56,9 +57,10 @@ export default function SignupPage() {
       });
       
       const { user, tokens } = response.data.data;
-      
+
       setAuth(user, tokens.accessToken, tokens.refreshToken);
-      
+      posthog.identify(user.id, { name: user.name, email: user.email, role: user.role });
+      posthog.capture('user_signed_up', { method: 'email' });
       router.push('/dashboard');
       toast.success('Account created successfully!');
     } catch (err: any) {
@@ -85,8 +87,10 @@ export default function SignupPage() {
       });
       
       const { user, tokens } = backendResponse.data.data;
-      
+
       setAuth(user, tokens.accessToken, tokens.refreshToken);
+      posthog.identify(user.id, { name: user.name, email: user.email, role: user.role });
+      posthog.capture('user_signed_up', { method: 'google' });
       router.push('/dashboard');
       toast.success('Account created via Google successfully!');
     } catch (err: any) {

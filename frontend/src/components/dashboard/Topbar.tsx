@@ -11,6 +11,7 @@ import useSWR from "swr";
 import { useUIStore } from "@/store/uiStore";
 import Link from "next/link";
 import { requestFCMToken } from "@/lib/fcm";
+import posthog from "posthog-js";
 
 const fetcher = (url: string) => api.get(url).then(res => res.data);
 
@@ -97,6 +98,8 @@ export function Topbar() {
     } catch (err) {
       console.error("Logout failed on server", err);
     } finally {
+      posthog.capture('user_logged_out');
+      posthog.reset();
       logout();
       toast.success("Successfully logged out");
       router.push("/auth/login");
